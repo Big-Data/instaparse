@@ -614,7 +614,7 @@
   (let [tramp (make-tramp grammar text)
         parser (nt start)]
     (start-parser tramp parser partial?)
-    (if-let [all-parses (run tramp)]
+    (if-let [all-parses (distinct (run tramp))]
       all-parses 
       (with-meta () 
         (fail/augment-failure @(:failure tramp) text)))))
