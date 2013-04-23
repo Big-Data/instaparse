@@ -59,8 +59,22 @@
 
 (def standard-non-terminal-reduction :hiccup)
 
+(defn map-preserving-meta [f l]
+  (with-meta (map f l) (meta l)))
+
+(defn mapv-preserving-meta [f l]
+  (with-meta (mapv f l) (meta l)))
+
+(defn force-all [node]
+  (cond
+    (delay? node) (force-all (force node))
+    (vector? node) (mapv-preserving-meta force-all node)
+    (seq? node) (map-preserving-meta force-all node)
+    (:contents node) (assoc node :contents (force-all (:contents node)))
+    :else node))
+
 (defn apply-reduction [f result]
-  (apply f (nt-flatten (make-flattenable [result]))))
+  (delay (apply f (nt-flatten (make-flattenable [(force-all result)])))))
 
 (defn apply-standard-reductions 
   ([grammar] (apply-standard-reductions standard-non-terminal-reduction grammar))

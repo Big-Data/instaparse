@@ -21,12 +21,13 @@
   ;; Need a way to convert parsers into strings for printing and error messages.
   (:require [instaparse.print :as print]))
     
-(def DEBUG nil)
+(def DEBUG true)
 (defmacro debug [& body]
   (when DEBUG
     `(do ~@body)))
 (defmacro dprintln [& body]
-  `(debug (println ~@body)))
+  nil)
+  ;`(debug (println ~@body)))
 
 (debug (def stats (atom {})))
 (debug (defn add! [call] (swap! stats update-in [call] (fnil inc 0))))
@@ -285,7 +286,7 @@
       ;_ (dprintln found-result? (count @(:stack tramp)) (count @(:next-stack tramp)))
       (cond
         @(:success tramp)
-        (lazy-seq (cons (:result @(:success tramp))
+        (lazy-seq (cons (red/force-all (:result @(:success tramp)))
                         (do (reset! (:success tramp) nil)
                           (run tramp true))))
         
@@ -672,7 +673,7 @@
   (let [tramp (make-tramp grammar text)
         parser (nt start)]
     (start-parser tramp parser partial?)
-    (if-let [all-parses (run tramp)]
+    (if-let [all-parses (distinct (run tramp))]
       all-parses 
       (with-meta () 
         (fail/augment-failure @(:failure tramp) text)))))
