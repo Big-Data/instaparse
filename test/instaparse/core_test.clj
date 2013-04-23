@@ -65,6 +65,12 @@
     "plus = plus <'+'> plus | num
      num = #'[0-9]'+"))
 
+(def addition-transform
+  (insta/parser
+    "plus = plus <'+'> plus | num
+     num = '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'"
+    :transform {:plus +, :num clojure.edn/read-string}))
+
 (def addition-e
   (insta/parser
     "plus = plus <'+'> plus | num
@@ -140,6 +146,9 @@
    :A (cat (string "a") (opt (nt :A)) (string "b"))
    :B (hide-tag (cat (string "b") (opt (nt :B)) (string "c")))})
 
+(def abc-combinator
+  (insta/parser abc-grammar-map :start :S))
+
 (def ambiguous-tokenizer
   (insta/parser
     "sentence = token (<whitespace> token)*
@@ -205,6 +214,20 @@
       (ebnf "A = 'a'*")
       {:B (ebnf "'b'+")})
     :start :S))
+    
+(def arithmetic-parser-with-transform
+  (insta/parser
+    "expr = add-sub
+     <add-sub> = mul-div | add | sub
+     add = add-sub <'+'> mul-div
+     sub = add-sub <'-'> mul-div
+     <mul-div> = term | mul | div
+     mul = mul-div <'*'> term
+     div = mul-div <'/'> term     
+     <term> = number | <'('> add-sub <')'>
+     number = #'[0-9]+'"
+    :transform {:add +, :sub -, :mul *, :div /, 
+                :number clojure.edn/read-string :expr identity})) 
 
 (deftest parsing-tutorial
   (are [x y] (= x y)
@@ -348,6 +371,12 @@
     
     (paren-ab-hide-both-tags "(aba)")
     '("a" "b" "a")
+    
+    (abc-combinator "aaabbbccc")
+    [:S "a" "a" "a" "b" "b" "b" "c" "c" "c"]
+    
+    (arithmetic-parser-with-transform "8*3-1")
+    23    
     
     (combo-build-example "aaaaa")
     [:S [:A "a" "a" "a" "a" "a"]]
